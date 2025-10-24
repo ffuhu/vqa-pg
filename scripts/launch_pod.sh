@@ -2,6 +2,9 @@
 
 set -e  # Exit on error
 
+apt update
+apt install screen
+
 mkdir /root/.uvenvs
 cd /root/.uvenvs
 

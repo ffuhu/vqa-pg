@@ -4,6 +4,7 @@ aiohttp==3.12.15
 aiosignal==1.4.0
 annotated-types==0.7.0
 attrs==25.3.0
+bitsandbytes
 certifi==2025.8.3
 charset-normalizer==3.4.3
 click==8.3.0
@@ -14,7 +15,7 @@ frozenlist==1.7.0
 fsspec==2025.9.0
 gitdb==4.0.12
 gitpython==3.1.45
-hf-transfer==1.1.10
+hf-transfer
 hf-xet==1.1.10
 huggingface-hub==0.35.3
 idna==3.10
