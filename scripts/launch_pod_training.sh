@@ -39,6 +39,8 @@ echo "train.py \
         --quant ${quant} \
         --epochs ${epochs}"
 
+echo "Starting training..."
+
 python train.py \
         --dataset ${dataset} \
         --learning_rate ${learning_rate} \
@@ -51,8 +53,22 @@ python train.py \
         --quant ${quant} \
         --epochs ${epochs}
 
+echo "Training finished. Starting testing..."
 
-echo "Execution finished. Terminating pod..."
+python test_ood.py \
+        --dataset ${dataset} \
+        --learning_rate ${learning_rate} \
+        --batch_size ${batch_size} \
+        --model_size ${model_size} \
+        --resolution ${resolution} \
+        --use_lora ${use_lora} \
+        --lora_rank ${lora_rank} \
+        --train_vision_tower ${trainVT} \
+        --quant ${quant} \
+        --epochs ${epochs}
+
+
+echo "Testing finished. Terminating pod..."
 
 # Terminate using curl
 curl -X POST \

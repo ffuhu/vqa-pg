@@ -236,27 +236,6 @@ def evaluate_model_per_query_type(dataset, dataset_name, prompt, model, processo
     }
     wandb.log(metrics)
 
-    # # log metrics for each independent query_type
-    # for counter_type, counter in counters.items():
-    #
-    #     c_accuracy, c_precision, c_recall, c_f1, c_weighted_accuracy, c_total = compute_metrics(counter.TP,
-    #                                                                                             counter.FP,
-    #                                                                                             counter.TN,
-    #                                                                                             counter.FN)
-    #     metrics_counter = {
-    #         f"{dataset_name.lower()}_{counter_type}/TP": counter.TP,
-    #         f"{dataset_name.lower()}_{counter_type}/TN": counter.TN,
-    #         f"{dataset_name.lower()}_{counter_type}/FP": counter.FP,
-    #         f"{dataset_name.lower()}_{counter_type}/FN": counter.FN,
-    #         f"{dataset_name.lower()}_{counter_type}/accuracy": c_accuracy,
-    #         f"{dataset_name.lower()}_{counter_type}/weighted_accuracy": c_weighted_accuracy,
-    #         f"{dataset_name.lower()}_{counter_type}/precision": c_precision,
-    #         f"{dataset_name.lower()}_{counter_type}/recall": c_recall,
-    #         f"{dataset_name.lower()}_{counter_type}/f1": c_f1,
-    #         f"{dataset_name.lower()}_{counter_type}/total": c_total,
-    #     }
-    #     wandb.log(metrics_counter)
-
     # Create a wandb table for metrics
     table = wandb.Table(columns=[
         "Modality", "TP", "TN", "FP", "FN", "Accuracy", "Precision", "Recall", "F1", "Weighted_Accuracy",
@@ -274,7 +253,6 @@ def evaluate_model_per_query_type(dataset, dataset_name, prompt, model, processo
     )
 
     # Compute and log metrics for each query_type
-    # import pdb; pdb.set_trace()
     for counter_type, counter in counters.items():
         c_accuracy, c_precision, c_recall, c_f1, c_weighted_accuracy, c_weighted_f1, c_total = compute_metrics(
             counter.TP, counter.FP, counter.TN, counter.FN
@@ -441,6 +419,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
     parser.add_argument("--max_steps", type=int, default=100_000,
                         help="Absolute maximum number of training steps (overrides number of epochs)")
+    parser.add_argument("--eval_steps", type=int, default=20_000, help="Eval every eval_steps steps")
     parser.add_argument("--prompt_type", type=str, default="text", help="Type of prompt (e.g., text)")
     # parser.add_argument("--model_id", type=str, default="google/paligemma2-3b-pt-224", help="Model identifier")
     parser.add_argument("--prompt", type=str,
@@ -502,6 +481,8 @@ if __name__ == "__main__":
         train_ds = train_ds.train_test_split(test_size=0.995)["train"]  # we'll use a very small split for demo
         val_ds = val_ds.train_test_split(test_size=0.99)["train"]  # we'll use a very small split for demo
         test_ds = test_ds.train_test_split(test_size=0.99)["train"]  # we'll use a very small split for demo
+        args.max_steps = 1_000
+        args.eval_steps = 1_000
 
     print(f"Dataset size (train): {len(train_ds)}")
     print(f"Dataset size (val): {len(val_ds)}")
@@ -613,7 +594,7 @@ if __name__ == "__main__":
 
     # Instantiate the custom callback
     custom_callback = CustomSaveEvalCallback(
-        eval_steps=20000,  # Evaluate/save every 20,000 steps
+        eval_steps=args.eval_steps,  # Evaluate/save every 20,000 steps
         output_dir=output_dir,
         save_total_limit=2,
         metric_for_best_model="eval_f1"

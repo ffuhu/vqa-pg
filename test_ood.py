@@ -298,6 +298,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train or evaluate a PaliGemma model with PEFT")
     parser.add_argument("--exp_desc", type=str, default="stg1", help="Experiment description")
     parser.add_argument("--dataset_name", type=str, default="fmt-c", help="Name of the dataset")
+    parser.add_argument("--load_dataset_locally", type=bool, default=False,
+                        help="Whether or not to load the dataset locally")
     parser.add_argument("--model_size", type=str, default="3B", help="Size of the paligemma2 model (3B, 10B or 28B)")
     parser.add_argument("--resolution", type=int, default=224, help="Resolution of the paligemma2 model (3B, 10B or 28B)")
 
@@ -354,8 +356,7 @@ if __name__ == "__main__":
 
     # show arguments
     print(f"\n{'=' * 50}")
-    print(f"EVALUATING Experiment {exp_id}")
-    print(f"\nRun started at: {datetime.now().strftime('%d%m%y%H%M%S')}")
+    print(f"Running Experiment {exp_id}")
     print("\nArguments:")
     args_table = [[key, value] for key, value in vars(args).items()]
     print(tabulate(args_table, headers=["Argument", "Value"], tablefmt="grid"))
@@ -371,18 +372,20 @@ if __name__ == "__main__":
     quantization_info = f"quant{quantization_bits}" if quantization_bits else "quantNo"
 
     # for testing, cannot keep the date, because it will not match
-    experiment_name = (f"{dataset_name}_"
+    experiment_name = (f"{args.exp_desc}exp{exp_id}_"
+                       f"{args.dataset_name}_"
                        f"{model_id.replace('/', '-')}_"
-                       f"trainVT{train_vision_tower}_"
-                       f"trainMMP{train_mm_projector}_"
-                       f"lr{learning_rate}_"
-                       f"bs{batch_size}_"
-                       f"wd{weight_decay}_"
-                       f"wur{warmup_ratio}_"
+                       f"trainVT{args.train_vision_tower}_"
+                       f"trainMMP{args.train_mm_projector}_"
+                       f"lr{args.learning_rate}_"
+                       f"bs{args.batch_size}_"
+                       f"wd{args.weight_decay}_"
+                       f"wur{args.warmup_ratio}_"
                        f"{lora_info}_"
                        f"{quantization_info}"
-                       f"epochs{epochs}_"
-                       f"prompt{prompt_type}")
+                       f"epochs{args.epochs}_"
+                       f"max_steps{args.max_steps}_"
+                       f"prompt{args.prompt_type}")
 
     # find the experiment
     experiment_name = [path for path in os.listdir(args.output_folder) if experiment_name in path]
@@ -410,34 +413,13 @@ if __name__ == "__main__":
 
     # find the wandb run_id to append to it
     run_id = find_run_id("paligemma2-vqa", experiment_name)
-    resume = "must" if run_id else "allow"
+    assert run_id, f"Run_id: {run_id} not found!"
     print(f"Run ID: {run_id}")
 
     # Initialize W&B run
     wandb.init(
-        project="paligemma2-vqa",
-        group="stage1",
-        name=experiment_name,
-        config={
-            "model_id": model_id,
-            "learning_rate": learning_rate,
-            "train_vision_tower": train_vision_tower,
-            "train_mm_projector": train_mm_projector,
-            "use_lora": use_lora,
-            "lora_rank": lora_rank,
-            "quantization_bits": quantization_bits,
-            "batch_size": batch_size,
-            "gradient_accumulation_steps": gradient_accumulation_steps,
-            "weight_decay": weight_decay,
-            "warmup_ratio": warmup_ratio,
-            "epochs": epochs,
-            "prompt_type": prompt_type,
-            "dataset": dataset_name,
-            "max_padding_length": max_padding_length,
-        },
         id=run_id,
-        resume=resume,
-        # config=var(args),
+        resume="must",
     )
 
     # Quantization config
@@ -469,8 +451,8 @@ if __name__ == "__main__":
     DTYPE = model.dtype
 
 
-    ood_datasets = ["fmt-c", "fmt-m", "malaga", "primusn", "all"]
-    ood_datasets = ["all", "primusn"]
+    ood_datasets = ["fmt-c", "fmt-m", "malaga", "primusn"]
+    # ood_datasets = ["all", "primusn"]
     #ood_datasets = ["all"]
     for ood_ds_name in ood_datasets:
 
@@ -479,17 +461,14 @@ if __name__ == "__main__":
 
         # Load datasets once
         dataset_path = f"./datasets/{ood_ds_name}-vqa"
-        # train_ds = load_from_disk(os.path.join(dataset_path, 'train'))
-        # val_ds = load_from_disk(os.path.join(dataset_path, 'val'))
-        test_ds = load_from_disk(os.path.join(dataset_path, 'test'))
+        test_ds = load(args.dataset_name, 'test', args.load_dataset_locally)
 
         if ood_ds_name == "all":
             # Load datasets once
             all_ds_names = ["fmt-c", "fmt-m", "malaga", "primusn"]
             test_dss = {}
             for ds_name in all_ds_names:
-                dataset_path = f"./datasets/{ds_name}-vqa"
-                test_dss[ds_name] = load_from_disk(os.path.join(dataset_path, 'test'))
+                test_dss[ds_name] = load(ds_name, 'test', args.load_dataset_locally)
 
             # combine all datasets
             test_ds = concatenate_datasets([*test_dss.values()])
