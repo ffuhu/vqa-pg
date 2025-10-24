@@ -1,0 +1,69 @@
+dataset     learning_rate   batch_size  model_size  resolution  use_lora    lora_rank   trainVT     quant   epochs
+
+fmt-c       1e-5            1           3B          224         True        8           True        0
+fmt-c       5e-5            1           3B          224         True        8           True        0
+fmt-c       1e-4            1           3B          224         True        8           True        0
+fmt-c       1e-5            1           3B          224         True        16           True        4
+fmt-c       5e-5            1           3B          224         True        16           True        4
+fmt-c       1e-4            1           3B          224         True        16           True        4
+fmt-c       1e-5            1           3B          448         True        8           True        0
+fmt-c       5e-5            1           3B          448         True        8           True        0
+fmt-c       1e-4            1           3B          448         True        8           True        0
+fmt-c       1e-5            1           3B          448         True        16           True        4
+fmt-c       5e-5            1           3B          448         True        16           True        4
+fmt-c       1e-4            1           3B          448         True        16           True        4
+
+fmt-c       1e-5            1           10B          224         True        8           True        0
+fmt-c       5e-5            1           10B          224         True        8           True        0
+fmt-c       1e-4            1           10B          224         True        8           True        0
+fmt-c       1e-5            1           10B          224         True        16           True        4
+fmt-c       5e-5            1           10B          224         True        16           True        4
+fmt-c       1e-4            1           10B          224         True        16           True        4
+fmt-c       1e-5            1           10B          448         True        8           True        0
+fmt-c       5e-5            1           10B          448         True        8           True        0
+fmt-c       1e-4            1           10B          448         True        8           True        0
+fmt-c       1e-5            1           10B          448         True        16           True        4
+fmt-c       5e-5            1           10B          448         True        16           True        4
+fmt-c       1e-4            1           10B          448         True        16           True        4
+
+# new
+
+fmt-c       1e-5            1           3B          224         True        8           True        4
+fmt-c       5e-5            1           3B          224         True        8           True        4
+fmt-c       1e-4            1           3B          224         True        8           True        4
+fmt-c       1e-5            1           3B          224         True        16           True        0
+fmt-c       5e-5            1           3B          224         True        16           True        0
+fmt-c       1e-4            1           3B          224         True        16           True        0
+fmt-c       1e-5            1           3B          448         True        8           True        4
+fmt-c       5e-5            1           3B          448         True        8           True        4
+fmt-c       1e-4            1           3B          448         True        8           True        4
+
+fmt-c       1e-5            1           10B          224         True        8           True        4
+fmt-c       5e-5            1           10B          224         True        8           True        4
+fmt-c       1e-4            1           10B          224         True        8           True        4
+fmt-c       1e-5            1           10B          224         True        16           True        0
+fmt-c       5e-5            1           10B          224         True        16           True        0
+fmt-c       1e-4            1           10B          224         True        16           True        0
+fmt-c       1e-5            1           10B          448         True        8           True        4
+fmt-c       5e-5            1           10B          448         True        8           True        4
+fmt-c       1e-4            1           10B          448         True        8           True        4
+
+# launch for fmt-m, malaga and primus with the best hiperparametres found
+# YES -> stg1exp051025161304_fmt-c_google-paligemma2-3B-pt-224_trainVTTrue_trainMMPTrue_lr0.0001_bs1_wd1e-06_wur0.1_LoRATrue-16_quant4epochs5_prompttext
+fmt-c       1e-4            1           3B          448         True        16           True        4     15
+fmt-m       1e-4            1           3B          448         True        16           True        4     15
+malaga       1e-4            1           3B          448         True        16           True        4    15
+primusn       1e-4            1           3B          448         True        16           True        4     15
+all       1e-4            1           3B          448         True        16           True        4     15
+fmt-c       1e-4            1           3B          224         True        16           True        4     15
+fmt-m       1e-4            1           3B          224         True        16           True        4     15
+malaga       1e-4            1           3B          224         True        16           True        4    15
+primusn       1e-4            1           3B          224         True        16           True        4     15
+all       1e-4            1           3B          224         True        16           True        4     15
+
+# with 896x896
+fmt-c       1e-4            1           3B          896         True        16           True        4     15
+fmt-m       1e-4            1           3B          896         True        16           True        4     15
+malaga       1e-4            1           3B          896         True        16           True        4    15
+primusn       1e-4            1           3B          896         True        16           True        4     15
+all       1e-4            1           3B          896         True        16           True        4     15
