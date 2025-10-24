@@ -406,7 +406,9 @@ if __name__ == "__main__":
         print(f"WARNING: Multiple experiments found for {dataset_name}")
         print(f"Picking the last one:"
               f"\n\t{experiment_name[-1]}")
-    experiment_name = experiment_name[-1]
+        experiment_name = experiment_name[-1]
+    else:
+        experiment_name = experiment_name[0]
 
     output_dir = f"./{args.output_folder}/{experiment_name}"
 
