@@ -288,6 +288,17 @@ def find_run_id(project_name, experiment_name):
     return None
 
 
+def load(dataset_name, split, locally=False):
+    if locally:
+        print(f"Loading {dataset_name} locally...")
+        dataset_path = f"./datasets/{args.dataset_name.lower()}-vqa"
+        return load_from_disk(os.path.join(dataset_path, split))
+    else:
+        print(f"Loading {dataset_name} from HF...")
+        dataset_path = f"PRAIG/vqa-{args.dataset_name.lower()}"
+        return load_dataset(dataset_path, split=split)
+
+    
 if __name__ == "__main__":
 
     # Enable verbose logging

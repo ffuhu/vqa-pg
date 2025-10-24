@@ -387,7 +387,7 @@ def load(dataset_name, split, locally=False):
     else:
         print(f"Loading {dataset_name} from HF...")
         dataset_path = f"PRAIG/vqa-{args.dataset_name.lower()}"
-        return load_dataset(dataset_path, split)
+        return load_dataset(dataset_path, split=split)
 
 
 if __name__ == "__main__":
