@@ -298,7 +298,7 @@ def load(dataset_name, split, locally=False):
         dataset_path = f"PRAIG/vqa-{args.dataset_name.lower()}"
         return load_dataset(dataset_path, split=split)
 
-    
+
 if __name__ == "__main__":
 
     # Enable verbose logging

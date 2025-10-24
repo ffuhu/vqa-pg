@@ -610,7 +610,7 @@ if __name__ == "__main__":
         processor=processor,
         prompt=args.prompt,
         callbacks=[
-            EarlyStoppingCallback(early_stopping_patience=1, early_stopping_threshold=0.005),
+            # EarlyStoppingCallback(early_stopping_patience=1, early_stopping_threshold=0.005),
             custom_callback
         ],
         max_padding_length=max_padding_length,
