@@ -6,7 +6,7 @@ from transformers import PaliGemmaForConditionalGeneration, PaliGemmaProcessor
 from transformers import TrainingArguments, EarlyStoppingCallback
 from transformers import TrainerCallback, TrainerControl, TrainerState, TrainingArguments
 from peft import get_peft_model, LoraConfig
-from datasets import load_from_disk, interleave_datasets
+from datasets import load_dataset, load_from_disk, interleave_datasets
 from transformers import Trainer
 import torch
 from sklearn.metrics import classification_report, accuracy_score, precision_recall_fscore_support

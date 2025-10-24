@@ -12,3 +12,5 @@ cd /root/vqa-pg
 uv pip install -r requirements.txt
 
 echo "Login into wandb and huggingface!"
+
+wandb login

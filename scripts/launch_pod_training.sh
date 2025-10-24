@@ -8,7 +8,7 @@ echo "Starting execution..."
 
 # Run your main script
 #python your_training_script.py
-SRC_DIR= /root/vqa-pg/ #/home/grfia/ffuentes/Scratch/ssmt/
+SRC_DIR=/root/vqa-pg/ #/home/grfia/ffuentes/Scratch/ssmt/
 
 cd $SRC_DIR
 source /root/.uvenvs/vqa-pg/bin/activate
