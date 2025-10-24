@@ -59,6 +59,6 @@ curl -X POST \
   https://api.runpod.io/graphql \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${RUNPOD_API_KEY}" \
-  -d "{\"query\": \"mutation { podTerminate(input: {podId: \\\"${RUNPOD_POD_ID}\\\"}) { id } }\"}"
+  -d "{\"query\": \"mutation { podTerminate(input: {podId: \\\"${RUNPOD_POD_ID}\\\"}) }\"}"
 
 echo "Pod termination initiated."

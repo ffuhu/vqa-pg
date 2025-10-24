@@ -401,6 +401,17 @@ class PaliGemmaTrainer(Trainer):
         return metrics
 
 
+def load(dataset_name, split, locally=False):
+    if locally:
+        print(f"Loading {dataset_name} locally...")
+        dataset_path = f"./datasets/{args.dataset_name.lower()}-vqa"
+        return load_from_disk(os.path.join(dataset_path, split))
+    else:
+        print(f"Loading {dataset_name} from HF...")
+        dataset_path = f"PRAIG/vqa-{args.dataset_name.lower()}"
+        return load_dataset(dataset_path, split)
+
+
 if __name__ == "__main__":
 
     # Enable verbose logging
@@ -411,6 +422,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train or evaluate a PaliGemma model with PEFT")
     parser.add_argument("--exp_desc", type=str, default="stg1", help="Experiment description")
     parser.add_argument("--dataset_name", type=str, default="fmt-c", help="Name of the dataset")
+    parser.add_argument("--load_dataset_locally", type=bool, default=False,
+                        help="Whether or not to load the dataset locally")
     parser.add_argument("--model_size", type=str, default="3B", help="Size of the paligemma2 model (3B, 10B or 28B)")
     parser.add_argument("--resolution", type=int, default=224, help="Resolution of the paligemma2 model (3B, 10B or 28B)")
 
@@ -426,6 +439,8 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", type=float, default=1e-6, help="Weight decay for optimizer")
     parser.add_argument("--warmup_ratio", type=float, default=0.1, help="Warmup ratio for learning rate scheduler")
     parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
+    parser.add_argument("--max_steps", type=int, default=100_000,
+                        help="Absolute maximum number of training steps (overrides number of epochs)")
     parser.add_argument("--prompt_type", type=str, default="text", help="Type of prompt (e.g., text)")
     # parser.add_argument("--model_id", type=str, default="google/paligemma2-3b-pt-224", help="Model identifier")
     parser.add_argument("--prompt", type=str,
@@ -437,38 +452,18 @@ if __name__ == "__main__":
     parser.add_argument("--debug", type=bool, default=False, help="Debug uses a tiny fraction of the dataset")
     parser.add_argument("--dry-run", type=bool, default=False, help="To check the parameters are ok")
 
+
     args = parser.parse_args()
 
     # Initialize W&B project
     wandb.login()  # Ensure you have W&B API key set in environment or prompted here
 
-    # Fixed params for Stage 1
-    exp_desc = args.exp_desc  #"stg1"
-    dataset_name = args.dataset_name  #"fmt-c"
-    train_vision_tower = args.train_vision_tower  #True
-    train_mm_projector = args.train_mm_projector  #True
-    use_lora = args.use_lora  #True
-    lora_rank = args.lora_rank  #8
-    batch_size = args.batch_size  #1
-    gradient_accumulation_steps = args.gradient_accumulation_steps  #4
-    weight_decay = args.weight_decay  #1e-6
-    warmup_ratio = args.warmup_ratio  #0.1
-    epochs = args.epochs  #5
-    prompt_type = args.prompt_type  #"text"
-    # model_id = args.model_id  #"google/paligemma2-3b-pt-224"
-    prompt = args.prompt  #"Is this kern notation present in the musical staff in the image: "
-    # max_padding_length = args.max_padding_length  #256 + 64
-    exp_id = datetime.now().strftime("%d%m%y%H%M%S")
-    learning_rate = args.learning_rate
-    train_vision_tower = args.train_vision_tower
-    use_lora = args.use_lora
-    lora_rank = args.lora_rank
-    quantization_bits = args.quantization_bits
+    # Set the experiment id to the date and time
+    exp_id = datetime.now().strftime("%d%m%y_%H%M%S")
 
     # show arguments
     print(f"\n{'=' * 50}")
     print(f"Running Experiment {exp_id}")
-    print(f"\nRun started at: {datetime.now().strftime('%d%m%y%H%M%S')}")
     print("\nArguments:")
     args_table = [[key, value] for key, value in vars(args).items()]
     print(tabulate(args_table, headers=["Argument", "Value"], tablefmt="grid"))
@@ -480,20 +475,19 @@ if __name__ == "__main__":
 
     # Load datasets once
     all_ds_names = ["fmt-c", "fmt-m", "malaga", "primusn"]
-    if dataset_name != "all":
-        dataset_path = f"./datasets/{dataset_name}-vqa"
-        train_ds = load_from_disk(os.path.join(dataset_path, 'train'))
-        val_ds = load_from_disk(os.path.join(dataset_path, 'val'))
-        test_ds = load_from_disk(os.path.join(dataset_path, 'test'))
+
+    if args.dataset_name != "all":
+        train_ds = load(args.dataset_name, 'train', args.load_dataset_locally)
+        val_ds = load(args.dataset_name, 'val', args.load_dataset_locally)
+        test_ds = load(args.dataset_name, 'test', args.load_dataset_locally)
     else:
         train_dss = {}
         val_dss = {}
         test_dss = {}
         for ds_name in all_ds_names:
-            dataset_path = f"./datasets/{ds_name}-vqa"
-            train_dss[ds_name] = load_from_disk(os.path.join(dataset_path, 'train'))
-            val_dss[ds_name] = load_from_disk(os.path.join(dataset_path, 'val'))
-            test_dss[ds_name] = load_from_disk(os.path.join(dataset_path, 'test'))
+            train_dss[ds_name] = load(ds_name, 'train', args.load_dataset_locally)
+            val_dss[ds_name] = load(ds_name, 'val', args.load_dataset_locally)
+            test_dss[ds_name] = load(ds_name, 'test', args.load_dataset_locally)
 
         # combine all datasets
         probabilities = [1/len(all_ds_names)] * len(all_ds_names)
@@ -504,7 +498,7 @@ if __name__ == "__main__":
     # for debug only
     if args.debug:
         print("DEBUGGING WITH VERY LITTLE DATA!!!")
-        exp_desc = "DEBUGGING_"
+        args.exp_desc = "DEBUGGING_"
         train_ds = train_ds.train_test_split(test_size=0.995)["train"]  # we'll use a very small split for demo
         val_ds = val_ds.train_test_split(test_size=0.99)["train"]  # we'll use a very small split for demo
         test_ds = test_ds.train_test_split(test_size=0.99)["train"]  # we'll use a very small split for demo
@@ -515,21 +509,22 @@ if __name__ == "__main__":
 
     model_id = f"google/paligemma2-{args.model_size}-pt-{args.resolution}"
     max_padding_length = 256 + 64 if args.resolution == 224 else 1024 + 64 if args.resolution == 448 else 4096 + 64
-    lora_info = f"LoRA{use_lora}-{lora_rank}" if use_lora else f"LoRA{use_lora}"
-    quantization_info = f"quant{quantization_bits}" if quantization_bits else "quantNo"
-    experiment_name = (f"{exp_desc}exp{exp_id}_"
-                       f"{dataset_name}_"
+    lora_info = f"LoRA{args.use_lora}-{args.lora_rank}" if args.use_lora else f"LoRA{args.use_lora}"
+    quantization_info = f"quant{args.quantization_bits}" if args.quantization_bits else "quantNo"
+    experiment_name = (f"{args.exp_desc}exp{exp_id}_"
+                       f"{args.dataset_name}_"
                        f"{model_id.replace('/', '-')}_"
-                       f"trainVT{train_vision_tower}_"
-                       f"trainMMP{train_mm_projector}_"
-                       f"lr{learning_rate}_"
-                       f"bs{batch_size}_"
-                       f"wd{weight_decay}_"
-                       f"wur{warmup_ratio}_"
+                       f"trainVT{args.train_vision_tower}_"
+                       f"trainMMP{args.train_mm_projector}_"
+                       f"lr{args.learning_rate}_"
+                       f"bs{args.batch_size}_"
+                       f"wd{args.weight_decay}_"
+                       f"wur{args.warmup_ratio}_"
                        f"{lora_info}_"
                        f"{quantization_info}"
-                       f"epochs{epochs}_"
-                       f"prompt{prompt_type}")
+                       f"epochs{args.epochs}_"
+                       f"max_steps{args.max_steps}_"
+                       f"prompt{args.prompt_type}")
     output_dir = f"./{args.output_folder}/{experiment_name}"
 
     # Processor loaded once
@@ -544,23 +539,6 @@ if __name__ == "__main__":
         project="paligemma2-vqa",
         group="stage1",
         name=experiment_name,
-        # config={
-        #     "model_id": model_id,
-        #     "learning_rate": learning_rate,
-        #     "train_vision_tower": train_vision_tower,
-        #     "train_mm_projector": train_mm_projector,
-        #     "use_lora": use_lora,
-        #     "lora_rank": lora_rank,
-        #     "quantization_bits": quantization_bits,
-        #     "batch_size": batch_size,
-        #     "gradient_accumulation_steps": gradient_accumulation_steps,
-        #     "weight_decay": weight_decay,
-        #     "warmup_ratio": warmup_ratio,
-        #     "epochs": epochs,
-        #     "prompt_type": prompt_type,
-        #     "dataset": dataset_name,
-        #     "max_padding_length": max_padding_length,
-        # },
         config=vars(args),
     )
 
@@ -580,24 +558,17 @@ if __name__ == "__main__":
         device_map="auto"
     )
 
-    # # Load model fresh for each exp
-    # model = PaliGemmaForConditionalGeneration.from_pretrained(
-    #     model_id,
-    #     device_map="auto",
-    #     torch_dtype=dtype,
-    # )
-
-    if not train_vision_tower:
+    if not args.train_vision_tower:
         for param in model.vision_tower.parameters():
             param.requires_grad = False
 
-    if not train_mm_projector:
+    if not args.train_mm_projector:
         for param in model.multi_modal_projector.parameters():
             param.requires_grad = False
 
-    if use_lora:
+    if args.use_lora:
         lora_config = LoraConfig(
-            r=lora_rank,
+            r=args.lora_rank,
             target_modules=["q_proj", "o_proj", "k_proj", "v_proj", "gate_proj", "up_proj", "down_proj"],
             task_type="CAUSAL_LM",
         )
@@ -607,14 +578,15 @@ if __name__ == "__main__":
     DTYPE = model.dtype
 
     args_trainer = TrainingArguments(
-        num_train_epochs=epochs,
+        num_train_epochs=args.epochs,
+        max_steps=args.max_steps,
         remove_unused_columns=False,
-        per_device_train_batch_size=batch_size,
+        per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=1,
-        gradient_accumulation_steps=gradient_accumulation_steps,
-        warmup_ratio=warmup_ratio,
-        learning_rate=learning_rate,
-        weight_decay=weight_decay,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        warmup_ratio=args.warmup_ratio,
+        learning_rate=args.learning_rate,
+        weight_decay=args.weight_decay,
         lr_scheduler_type="cosine",
         adam_beta1=0.9,
         adam_beta2=0.999,
@@ -624,7 +596,7 @@ if __name__ == "__main__":
         # eval_strategy="epoch",
         # save_strategy="steps",
         # eval_strategy="steps",
-        save_strategy="no",
+        save_strategy="no",  # CustomSaveEvalCallback takes care of it
         eval_strategy="no",
         # eval_steps=20000,
         # save_steps=20000,
@@ -652,10 +624,10 @@ if __name__ == "__main__":
         model=model,
         train_dataset=train_ds,
         eval_dataset=val_ds,
-        data_collator=lambda examples: collate_fn(examples, prompt),
+        data_collator=lambda examples: collate_fn(examples, args.prompt),
         args=args_trainer,
         processor=processor,
-        prompt=prompt,
+        prompt=args.prompt,
         callbacks=[
             EarlyStoppingCallback(early_stopping_patience=1, early_stopping_threshold=0.005),
             custom_callback
@@ -670,13 +642,13 @@ if __name__ == "__main__":
     print(f"EVALUACIÓN FINAL - Exp {exp_id}")
     print("=" * 50)
 
-    # evaluate_model(train_ds, "Train Set", prompt, model, processor, device, DTYPE, max_padding_length)
-    # evaluate_model(val_ds, "Val Set", prompt, model, processor, device, DTYPE, max_padding_length)
-    # evaluate_model(test_ds, "Test Set", prompt, model, processor, device, DTYPE, max_padding_length)
+    # evaluate_model(train_ds, "Train Set", args.prompt, model, processor, device, DTYPE, max_padding_length)
+    # evaluate_model(val_ds, "Val Set", args.prompt, model, processor, device, DTYPE, max_padding_length)
+    # evaluate_model(test_ds, "Test Set", args.prompt, model, processor, device, DTYPE, max_padding_length)
 
-    evaluate_model_per_query_type(train_ds, "Train Set", prompt, model, processor, device, DTYPE, max_padding_length)
-    evaluate_model_per_query_type(val_ds, "Val Set", prompt, model, processor, device, DTYPE, max_padding_length)
-    evaluate_model_per_query_type(test_ds, "Test Set", prompt, model, processor, device, DTYPE, max_padding_length)
+    evaluate_model_per_query_type(train_ds, "Train Set", args.prompt, model, processor, device, DTYPE, max_padding_length)
+    evaluate_model_per_query_type(val_ds, "Val Set", args.prompt, model, processor, device, DTYPE, max_padding_length)
+    evaluate_model_per_query_type(test_ds, "Test Set", args.prompt, model, processor, device, DTYPE, max_padding_length)
 
     # Finish W&B run
     wandb.finish()
