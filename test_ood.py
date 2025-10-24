@@ -326,6 +326,8 @@ if __name__ == "__main__":
     parser.add_argument("--weight_decay", type=float, default=1e-6, help="Weight decay for optimizer")
     parser.add_argument("--warmup_ratio", type=float, default=0.1, help="Warmup ratio for learning rate scheduler")
     parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
+    parser.add_argument("--max_steps", type=int, default=100_000,
+                        help="Absolute maximum number of training steps (overrides number of epochs)")
     parser.add_argument("--prompt_type", type=str, default="text", help="Type of prompt (e.g., text)")
     # parser.add_argument("--model_id", type=str, default="google/paligemma2-3b-pt-224", help="Model identifier")
     parser.add_argument("--prompt", type=str,
